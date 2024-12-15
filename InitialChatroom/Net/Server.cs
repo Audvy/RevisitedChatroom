@@ -16,6 +16,7 @@ namespace ChatClient.Net
         public event Action connectedEvent;
         public event Action msgReceivedEvent;
         public event Action userDisconnectEvent;
+        public event Action invalidUsernameEvent;
 
         
         public Server()
@@ -25,21 +26,25 @@ namespace ChatClient.Net
 
         public void ConnectToServer(string username)
         {
-            if (!_client.Connected)
+            if (!string.IsNullOrWhiteSpace(username))
             {
-                _client.Connect("127.0.0.1", 7890);
-                PacketReader = new PacketReader(_client.GetStream());
-
-                if (!string.IsNullOrEmpty(username))
+                if (!_client.Connected)
                 {
+                    _client.Connect("127.0.0.1", 7890);
+                    PacketReader = new PacketReader(_client.GetStream());
+
+
                     var connectPacket = new PacketBuilder();
                     connectPacket.WriteOpCode(0);
                     connectPacket.WriteMessage(username);
                     _client.Client.Send(connectPacket.GetPacketBytes());
-                }
-                ReadPackets();
-
-
+                    ReadPackets();
+                } 
+            }
+            else
+            {
+                invalidUsernameEvent?.Invoke();
+                Console.WriteLine("Invalid Username");
             }
         }
 

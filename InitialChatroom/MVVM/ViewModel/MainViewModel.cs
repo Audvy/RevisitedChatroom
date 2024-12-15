@@ -1,9 +1,11 @@
 ﻿using ChatClient.MVVM.Core;
 using ChatClient.MVVM.Model;
 using ChatClient.Net;
+using ChatClient.Net.IO;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,15 +24,21 @@ namespace ChatClient.MVVM.ViewModel
         public string Username { get; set; }
         public string Message { get; set; }
 
+
+        private Notification _notification;
+
+
         private Server _server;
         public MainViewModel() 
         {
             Users = new ObservableCollection<UserModel>();
             Messages = new ObservableCollection<string>();
             _server = new Server();
+            _notification = new Notification();
             _server.connectedEvent += UserConnected;
             _server.msgReceivedEvent += MessageReceived;
             _server.userDisconnectEvent += UserDisconnected;
+            _server.invalidUsernameEvent += InvalidUsername;
             ConnectToServerCommand = new RelayCommand(o => _server.ConnectToServer(Username), o => !string.IsNullOrEmpty(Username));
             SendMessageCommand = new RelayCommand(o => _server.SendMessageToServer(Message), o => !string.IsNullOrEmpty(Message));
         }
@@ -61,6 +69,23 @@ namespace ChatClient.MVVM.ViewModel
             {
                 Application.Current.Dispatcher.Invoke(() => Users.Add(user));
             }
+
+        }
+
+        public Notification Notification
+        {
+            get { return _notification; }
+            set { _notification = value; }
+        }
+
+        private void InvalidUsername()
+        {
+            Task.Run(() =>
+            {
+                this.Notification.NotificationMsg = "Invalid Username";
+                Thread.Sleep(5000);
+                this.Notification.NotificationMsg = "";
+            });
         }
     }
 }
