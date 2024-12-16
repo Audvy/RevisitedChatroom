@@ -1,4 +1,4 @@
-﻿using ChatClient.MVVM.Core;
+﻿  using ChatClient.MVVM.Core;
 using ChatClient.MVVM.Model;
 using ChatClient.Net;
 using ChatClient.Net.IO;
@@ -39,6 +39,7 @@ namespace ChatClient.MVVM.ViewModel
             _server.msgReceivedEvent += MessageReceived;
             _server.userDisconnectEvent += UserDisconnected;
             _server.invalidUsernameEvent += InvalidUsername;
+            _server.usernameAlreadyTakenEvent += UsernameAlreadyTaken;
             ConnectToServerCommand = new RelayCommand(o => _server.ConnectToServer(Username), o => !string.IsNullOrEmpty(Username));
             SendMessageCommand = new RelayCommand(o => _server.SendMessageToServer(Message), o => !string.IsNullOrEmpty(Message));
         }
@@ -83,9 +84,29 @@ namespace ChatClient.MVVM.ViewModel
             Task.Run(() =>
             {
                 this.Notification.NotificationMsg = "Invalid Username";
-                Thread.Sleep(5000);
+                Thread.Sleep(8000);
                 this.Notification.NotificationMsg = "";
             });
+        }
+
+        private void UsernameAlreadyTaken()
+        {
+
+            string ErrorMessage = _server.PacketReader.ReadMessage();
+            Task.Run(() =>
+            {
+                this.Notification.NotificationMsg = $"{ErrorMessage}";
+                Thread.Sleep(8000);
+                this.Notification.NotificationMsg = "";
+            });
+            _server = new Server();
+            _server.connectedEvent += UserConnected;
+            _server.msgReceivedEvent += MessageReceived;
+            _server.userDisconnectEvent += UserDisconnected;
+            _server.invalidUsernameEvent += InvalidUsername;
+            _server.usernameAlreadyTakenEvent += UsernameAlreadyTaken;
+            ConnectToServerCommand = new RelayCommand(o => _server.ConnectToServer(Username), o => !string.IsNullOrEmpty(Username));
+            SendMessageCommand = new RelayCommand(o => _server.SendMessageToServer(Message), o => !string.IsNullOrEmpty(Message));
         }
     }
 }

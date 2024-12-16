@@ -17,8 +17,9 @@ namespace ChatClient.Net
         public event Action msgReceivedEvent;
         public event Action userDisconnectEvent;
         public event Action invalidUsernameEvent;
+        public event Action usernameAlreadyTakenEvent;
 
-        
+
         public Server()
         {
             _client = new TcpClient();
@@ -30,7 +31,7 @@ namespace ChatClient.Net
             {
                 if (!_client.Connected)
                 {
-                    _client.Connect("127.0.0.1", 7890);
+                    _client.Connect("13.59.197.244", 7890);
                     PacketReader = new PacketReader(_client.GetStream());
 
 
@@ -65,6 +66,9 @@ namespace ChatClient.Net
                             break;
                         case 10:
                             userDisconnectEvent?.Invoke();
+                            break;
+                        case 25:
+                            usernameAlreadyTakenEvent?.Invoke();
                             break;
                         default:
                             Console.WriteLine("OpCode not found");

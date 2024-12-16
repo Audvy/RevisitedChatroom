@@ -1,10 +1,6 @@
 ﻿using ChatServer.Net.IO;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace ChatServer
 {
@@ -15,6 +11,9 @@ namespace ChatServer
         public TcpClient ClientSocket { get; set; }
 
         PacketReader _packetReader;
+
+        public bool accepted = false;
+
         public Client(TcpClient client)
         {
             ClientSocket = client;
@@ -22,12 +21,12 @@ namespace ChatServer
             _packetReader = new PacketReader(ClientSocket.GetStream());
 
             var opCode = _packetReader.Read();
-            Username = _packetReader.ReadMessage();
-
-
-            Console.WriteLine($"[{DateTime.Now}]: {Username} has connected! Packet has Opcode: {opCode}");
-
-            Task.Run(() => Process());
+            if (opCode == 0)
+            {
+                Username = _packetReader.ReadMessage();
+                Console.WriteLine($"[{DateTime.Now}]: {UID.ToString()} has made connection request");
+                Task.Run(() => Process());
+            }
         }
 
         void Process()
@@ -44,19 +43,31 @@ namespace ChatServer
                             Console.WriteLine($"[{DateTime.Now}]: Message recieved! {Username} said \"{msg}\"");
                             Program.BroadcastMessage(DateTime.Now, msg, 5, Username);
                             break;
+                        case 25:
+                            Disconnect();
+                            break;
                         default:
                             break;
 
                     }
                 }
-                catch (Exception)
+                catch (System.IO.IOException)
                 {
-                    Console.WriteLine($"[{UID}] aka {Username} Disconnected!");
-                    Program.BroadcastDisconnection(UID.ToString());
-                    ClientSocket.Close();
+                    Console.WriteLine($"[{DateTime.Now}]: Connection Lost");
+                    if (accepted)
+                    {
+                        Console.WriteLine($"[{DateTime.Now}]: [{UID}] aka {Username} disconnected!");
+                        Program.BroadcastDisconnection(UID.ToString());
+                        Disconnect();
+                    }
                     break;
                 }
             }
+        }
+
+        public void Disconnect()
+        {
+            ClientSocket.Close();
         }
     }
 }

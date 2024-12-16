@@ -1,17 +1,11 @@
-﻿using ChatServer.Models;
-using ChatServer.Net.IO;
+﻿using ChatServer.Net.IO;
 using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Diagnostics.Metrics;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection.Emit;
-using System.Reflection.Metadata;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Threading;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using System.Data;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+
 
 namespace ChatServer
 {
@@ -22,27 +16,46 @@ namespace ChatServer
         
         static void Main(string[] args)
         {
+            Console.WriteLine("Server up and running");
             _users = new List<Client>();
-            _listener = new TcpListener(IPAddress.Parse("127.0.0.1"), 7890);
+            int port = 7890;
+            _listener = new TcpListener(IPAddress.Any, port);
             _listener.Start();
+            Console.WriteLine($"Listening on port {port}");
 
             while (true)
             {
                 var client = new Client(_listener.AcceptTcpClient());
-                Console.WriteLine($"{client.UID} connected on port 7890!");
-                _users.Add(client);
-                
-                /*Broadcast connection to everyone on the server */
-                BroadcastConnection(client.Username);
-                /*Send all previously sent messages to the new user*/
-                ReadMessagesFromDatabase(client);
+
+                var username = _users.Where(x => x.Username == client.Username).FirstOrDefault();
+                if (username != null) 
+                {
+                    string error = $"Username {client.Username} has already been taken";
+                    Console.WriteLine($"[{DateTime.Now}]: {client.UID.ToString()} has been denied; error: {error}");
+                    var broadcastPacket = new PacketBuilder();
+                    broadcastPacket.WriteOpCode(25);
+                    broadcastPacket.WriteMessage(error);
+                    client.ClientSocket.Client.Send(broadcastPacket.GetPacketBytes());
+                    client.Disconnect();
+                }
+                else
+                {
+                    client.accepted = true;
+                    Console.WriteLine($"[{DateTime.Now}]: {client.UID} aka {client.Username} connected");
+                    _users.Add(client);
+
+                    /*Broadcast connection to everyone on the server */
+                    BroadcastConnection(client.Username);
+                    /*Send all previously sent messages to the new user*/
+                    ReadMessagesFromDatabase(client);
+                }
             }
         }
         
 
         static void BroadcastConnection(string Username)
         {
-            RecordMessagesToDatabase(DateTime.Now, $"[{DateTime.Now}] {Username} joined!", 5);
+            BroadcastMessage(DateTime.Now, $"{Username} joined!", 5);
 
             foreach (var establishedUser in _users)
             {
@@ -59,9 +72,13 @@ namespace ChatServer
 
         public static void BroadcastMessage(DateTime TimeStamp, string Message, byte opCode, string Username = null)
         {
-            string? msg = Username.IsNullOrEmpty() ? $"[{TimeStamp}] {Message}" : $"[{TimeStamp}] {Username}: {Message}";
-            RecordMessagesToDatabase(DateTime.Now, msg, 5, Username);
-
+            string msg = Message;
+            
+            if (opCode== 5)
+            {
+                msg = Username.IsNullOrEmpty() ? $"[{TimeStamp}] {Message}" : $"[{TimeStamp}] {Username}: {Message}";
+                RecordMessagesToDatabase(DateTime.Now, msg, 5, Username);
+            }
 
             foreach (var user in _users)
             {
@@ -78,20 +95,14 @@ namespace ChatServer
             if (disconnectedUser == null) { return; }
 
             _users.Remove(disconnectedUser);
-            foreach (var user in _users)
-            {
-                var broadcastPacket = new PacketBuilder();
-                broadcastPacket.WriteOpCode(10);
-                broadcastPacket.WriteMessage(uid);
-                user.ClientSocket.Client.Send(broadcastPacket.GetPacketBytes());
-                
-            }
+            BroadcastMessage(DateTime.Now, uid, 10);
             BroadcastMessage(DateTime.Now, $"{disconnectedUser.Username} Disconnected!", 5);
         }
 
         static void RecordMessagesToDatabase(DateTime TimeStamp, string msg, int opCode, string Author = null)
         {
-            SqlConnection connection = new SqlConnection("Data Source = (localdb)\\Local; Initial Catalog = master; Integrated Security = True");
+            // mssqlserver.cf64cwwg2pao.us-east-2.rds.amazonaws.com
+            SqlConnection connection = new SqlConnection("Data Source=chatdb.cf64cwwg2pao.us-east-2.rds.amazonaws.com,1433;Initial Catalog=application;Persist Security Info=True;User ID=admin;Password=password;Trust Server Certificate=True");
             connection.Open();
             string? commandString = Author.IsNullOrEmpty()
                     ? "insert into Messages (TimeStamp,msg,opCode) values" + "(@TimeStamp,@msg,@opCode)"
@@ -108,7 +119,7 @@ namespace ChatServer
         }
         static void ReadMessagesFromDatabase(Client user)
         {
-            SqlConnection connection = new SqlConnection("Data Source = (localdb)\\Local; Initial Catalog = master; Integrated Security = True");
+            SqlConnection connection = new SqlConnection("Data Source=chatdb.cf64cwwg2pao.us-east-2.rds.amazonaws.com,1433;Initial Catalog=application;Persist Security Info=True;User ID=admin;Password=password;Trust Server Certificate=True");
             connection.Open();
             SqlCommand command = new SqlCommand("select * from Messages order by TimeStamp asc", connection);
             var reader = command.ExecuteReader();

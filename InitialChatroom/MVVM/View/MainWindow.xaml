@@ -30,7 +30,7 @@
                     Command="{Binding ConnectToServerCommand}"/>
             <TextBlock x:Name="NotificationWindow" Height="35" Margin="5,10,5,5" DockPanel.Dock="Bottom" 
                        Text="{Binding Notification.NotificationMsg, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" 
-                       Foreground="Red" TextAlignment="Center" FontWeight="Bold"/>
+                       Foreground="Red" TextAlignment="Center" FontWeight="Bold" TextWrapping="Wrap"/>
             <ListView ItemsSource="{Binding Users}">
                 <ListView.ItemTemplate>
                     <DataTemplate>
@@ -43,6 +43,7 @@
 
         <StackPanel Grid.Column="1">
             <ListView ItemsSource="{Binding Messages}" Height="380"/>
+
 
             <StackPanel Orientation="Horizontal">
                 <TextBox Height="55"
