@@ -13,45 +13,60 @@ namespace ChatServer
     {
         static List<Client> _users;
         static TcpListener _listener;
+
+        const int USER_CONNECTION_OPCODE = 1;
+        const int MESSAGE_OPCODE = 5;
+        const int USER_DISCONNECTION_OPCODE = 10;
+        const int INVALID_USERNAME_OPCODE = 25;
+
         
         static void Main(string[] args)
         {
-            Console.WriteLine("Server up and running");
+            Console.WriteLine($"{GetMyIP()} up and running");
             _users = new List<Client>();
-            int port = 7890;
-            _listener = new TcpListener(IPAddress.Any, port);
+            int ClientSocketPort = 7890;
+            _listener = new TcpListener(IPAddress.Any, ClientSocketPort);
             _listener.Start();
-            Console.WriteLine($"Listening on port {port}");
+            Console.WriteLine($"Listening on {IPAddress.Any}:{ClientSocketPort}");
 
             while (true)
             {
                 var client = new Client(_listener.AcceptTcpClient());
 
                 var username = _users.Where(x => x.Username == client.Username).FirstOrDefault();
-                if (username != null) 
+                if (username != null)
                 {
-                    string error = $"Username {client.Username} has already been taken";
-                    Console.WriteLine($"[{DateTime.Now}]: {client.UID.ToString()} has been denied; error: {error}");
-                    var broadcastPacket = new PacketBuilder();
-                    broadcastPacket.WriteOpCode(25);
-                    broadcastPacket.WriteMessage(error);
-                    client.ClientSocket.Client.Send(broadcastPacket.GetPacketBytes());
-                    client.Disconnect();
+                    DuplicateUsernameFound(client);
                 }
                 else
                 {
-                    client.accepted = true;
-                    Console.WriteLine($"[{DateTime.Now}]: {client.UID} aka {client.Username} connected");
-                    _users.Add(client);
-
-                    /*Broadcast connection to everyone on the server */
-                    BroadcastConnection(client.Username);
-                    /*Send all previously sent messages to the new user*/
-                    ReadMessagesFromDatabase(client);
+                    AcceptClient(client);
                 }
             }
         }
-        
+
+        private static void AcceptClient(Client client)
+        {
+            client.accepted = true;
+            Console.WriteLine($"[{DateTime.Now}]: {client.UID} aka {client.Username} connected");
+            _users.Add(client);
+
+            /*Broadcast connection to everyone on the server */
+            BroadcastConnection(client.Username);
+            /*Send all previously sent messages to the new user*/
+            ReadMessagesFromDatabase(client);
+        }
+
+        private static void DuplicateUsernameFound(Client client)
+        {
+            string error = $"Username {client.Username} has already been taken";
+            Console.WriteLine($"[{DateTime.Now}]: {client.UID.ToString()} has been denied; error: {error}");
+            var broadcastPacket = new PacketBuilder();
+            broadcastPacket.WriteOpCode(INVALID_USERNAME_OPCODE);
+            broadcastPacket.WriteMessage(error);
+            client.ClientSocket.Client.Send(broadcastPacket.GetPacketBytes());
+            client.Disconnect();
+        }
 
         static void BroadcastConnection(string Username)
         {
@@ -62,7 +77,7 @@ namespace ChatServer
                 foreach (var newUser in _users)
                 {
                     var broadcastPacket = new PacketBuilder();
-                    broadcastPacket.WriteOpCode(1);
+                    broadcastPacket.WriteOpCode(USER_CONNECTION_OPCODE);
                     broadcastPacket.WriteMessage(newUser.Username);
                     broadcastPacket.WriteMessage(newUser.UID.ToString());
                     establishedUser.ClientSocket.Client.Send(broadcastPacket.GetPacketBytes());
@@ -77,7 +92,7 @@ namespace ChatServer
             if (opCode== 5)
             {
                 msg = Username.IsNullOrEmpty() ? $"[{TimeStamp}] {Message}" : $"[{TimeStamp}] {Username}: {Message}";
-                RecordMessagesToDatabase(DateTime.Now, msg, 5, Username);
+                RecordMessagesToDatabase(DateTime.Now, msg, MESSAGE_OPCODE, Username);
             }
 
             foreach (var user in _users)
@@ -95,8 +110,8 @@ namespace ChatServer
             if (disconnectedUser == null) { return; }
 
             _users.Remove(disconnectedUser);
-            BroadcastMessage(DateTime.Now, uid, 10);
-            BroadcastMessage(DateTime.Now, $"{disconnectedUser.Username} Disconnected!", 5);
+            BroadcastMessage(DateTime.Now, uid, USER_DISCONNECTION_OPCODE);
+            BroadcastMessage(DateTime.Now, $"{disconnectedUser.Username} Disconnected!", MESSAGE_OPCODE);
         }
 
         static void RecordMessagesToDatabase(DateTime TimeStamp, string msg, int opCode, string Author = null)
@@ -132,6 +147,23 @@ namespace ChatServer
             }
             reader.Close();
 
+        }
+
+        public static async Task<IPAddress?> GetExternalIpAddress()
+        {
+            var externalIpString = (await new HttpClient().GetStringAsync("http://icanhazip.com"))
+                .Replace("\\r\\n", "").Replace("\\n", "").Trim();
+            if (!IPAddress.TryParse(externalIpString, out var ipAddress)) return null;
+            return ipAddress;
+        }
+
+        public static string GetMyIP()
+        {
+            var externalIpTask = GetExternalIpAddress();
+            GetExternalIpAddress().Wait();
+            var externalIpString = externalIpTask.Result ?? IPAddress.Loopback;
+
+            return externalIpString.ToString();
         }
 
     }
