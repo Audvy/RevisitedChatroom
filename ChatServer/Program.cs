@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Data;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Reflection.Emit;
 
 
 namespace ChatServer
@@ -13,16 +14,11 @@ namespace ChatServer
     {
         static List<Client> _users;
         static TcpListener _listener;
-
-        const int USER_CONNECTION_OPCODE = 1;
-        const int MESSAGE_OPCODE = 5;
-        const int USER_DISCONNECTION_OPCODE = 10;
-        const int INVALID_USERNAME_OPCODE = 25;
-
-        
+  
         static void Main(string[] args)
         {
-            Console.WriteLine($"{GetMyIP()} up and running");
+            Console.WriteLine($"{ChatHostInfo.MyIP} up and running");
+            // _users is a subset of the total users where user is connected to this server
             _users = new List<Client>();
             int ClientSocketPort = 7890;
             _listener = new TcpListener(IPAddress.Any, ClientSocketPort);
@@ -33,8 +29,7 @@ namespace ChatServer
             {
                 var client = new Client(_listener.AcceptTcpClient());
 
-                var username = _users.Where(x => x.Username == client.Username).FirstOrDefault();
-                if (username != null)
+                if (IsUsernameAlreadyUsedInUsersTable(client))
                 {
                     DuplicateUsernameFound(client);
                 }
@@ -47,14 +42,18 @@ namespace ChatServer
 
         private static void AcceptClient(Client client)
         {
-            client.accepted = true;
+            client.HasValidConnection = true;
             Console.WriteLine($"[{DateTime.Now}]: {client.UID} aka {client.Username} connected");
             _users.Add(client);
 
+            /* Add user's name and UID plus the server they are connected to DB */
+            RecordUserToUsersTable(client);
+
             /*Broadcast connection to everyone on the server */
             BroadcastConnection(client.Username);
+
             /*Send all previously sent messages to the new user*/
-            ReadMessagesFromDatabase(client);
+            ForwardMessagesToUserFromMessagesDB(client);
         }
 
         private static void DuplicateUsernameFound(Client client)
@@ -62,7 +61,7 @@ namespace ChatServer
             string error = $"Username {client.Username} has already been taken";
             Console.WriteLine($"[{DateTime.Now}]: {client.UID.ToString()} has been denied; error: {error}");
             var broadcastPacket = new PacketBuilder();
-            broadcastPacket.WriteOpCode(INVALID_USERNAME_OPCODE);
+            broadcastPacket.WriteOpCode(ChatHostInfo.INVALID_USERNAME_OPCODE);
             broadcastPacket.WriteMessage(error);
             client.ClientSocket.Client.Send(broadcastPacket.GetPacketBytes());
             client.Disconnect();
@@ -70,6 +69,7 @@ namespace ChatServer
 
         static void BroadcastConnection(string Username)
         {
+            
             BroadcastMessage(DateTime.Now, $"{Username} joined!", 5);
 
             foreach (var establishedUser in _users)
@@ -77,7 +77,7 @@ namespace ChatServer
                 foreach (var newUser in _users)
                 {
                     var broadcastPacket = new PacketBuilder();
-                    broadcastPacket.WriteOpCode(USER_CONNECTION_OPCODE);
+                    broadcastPacket.WriteOpCode(ChatHostInfo.USER_CONNECTION_OPCODE);
                     broadcastPacket.WriteMessage(newUser.Username);
                     broadcastPacket.WriteMessage(newUser.UID.ToString());
                     establishedUser.ClientSocket.Client.Send(broadcastPacket.GetPacketBytes());
@@ -92,7 +92,7 @@ namespace ChatServer
             if (opCode== 5)
             {
                 msg = Username.IsNullOrEmpty() ? $"[{TimeStamp}] {Message}" : $"[{TimeStamp}] {Username}: {Message}";
-                RecordMessagesToDatabase(DateTime.Now, msg, MESSAGE_OPCODE, Username);
+                RecordMessageToMessagesTable(DateTime.Now, msg, ChatHostInfo.MESSAGE_OPCODE, Username);
             }
 
             foreach (var user in _users)
@@ -110,14 +110,13 @@ namespace ChatServer
             if (disconnectedUser == null) { return; }
 
             _users.Remove(disconnectedUser);
-            BroadcastMessage(DateTime.Now, uid, USER_DISCONNECTION_OPCODE);
-            BroadcastMessage(DateTime.Now, $"{disconnectedUser.Username} Disconnected!", MESSAGE_OPCODE);
+            BroadcastMessage(DateTime.Now, uid, ChatHostInfo.USER_DISCONNECTION_OPCODE);
+            BroadcastMessage(DateTime.Now, $"{disconnectedUser.Username} Disconnected!", ChatHostInfo.MESSAGE_OPCODE);
         }
 
-        static void RecordMessagesToDatabase(DateTime TimeStamp, string msg, int opCode, string Author = null)
+        static void RecordMessageToMessagesTable(DateTime TimeStamp, string msg, int opCode, string Author = null)
         {
-            // mssqlserver.cf64cwwg2pao.us-east-2.rds.amazonaws.com
-            SqlConnection connection = new SqlConnection("Data Source=chatdb.cf64cwwg2pao.us-east-2.rds.amazonaws.com,1433;Initial Catalog=application;Persist Security Info=True;User ID=admin;Password=password;Trust Server Certificate=True");
+            SqlConnection connection = new SqlConnection(ChatHostInfo.APPLICATION_DB_DATA_STRING);
             connection.Open();
             string? commandString = Author.IsNullOrEmpty()
                     ? "insert into Messages (TimeStamp,msg,opCode) values" + "(@TimeStamp,@msg,@opCode)"
@@ -131,10 +130,11 @@ namespace ChatServer
             command.Parameters.AddWithValue("@msg", msg);
             command.Parameters.AddWithValue("@opCode", opCode);
             command.ExecuteNonQuery();
+            connection.Close();
         }
-        static void ReadMessagesFromDatabase(Client user)
+        static void ForwardMessagesToUserFromMessagesDB(Client user)
         {
-            SqlConnection connection = new SqlConnection("Data Source=chatdb.cf64cwwg2pao.us-east-2.rds.amazonaws.com,1433;Initial Catalog=application;Persist Security Info=True;User ID=admin;Password=password;Trust Server Certificate=True");
+            SqlConnection connection = new SqlConnection(ChatHostInfo.APPLICATION_DB_DATA_STRING);
             connection.Open();
             SqlCommand command = new SqlCommand("select * from Messages order by TimeStamp asc", connection);
             var reader = command.ExecuteReader();
@@ -146,25 +146,59 @@ namespace ChatServer
                 user.ClientSocket.Client.Send(msgPacket.GetPacketBytes());
             }
             reader.Close();
+            connection.Close();
 
         }
 
-        public static async Task<IPAddress?> GetExternalIpAddress()
+        static void RecordUserToUsersTable(Client user)
         {
-            var externalIpString = (await new HttpClient().GetStringAsync("http://icanhazip.com"))
-                .Replace("\\r\\n", "").Replace("\\n", "").Trim();
-            if (!IPAddress.TryParse(externalIpString, out var ipAddress)) return null;
-            return ipAddress;
+            SqlConnection connection = new SqlConnection(ChatHostInfo.APPLICATION_DB_DATA_STRING);
+            connection.Open();
+            string? commandString = "insert into Users (username,serverip,uid) values"
+                + "(@username,@serverip,@uid)";
+            SqlCommand command = new SqlCommand(commandString, connection);
+            command.Parameters.AddWithValue("@username", user.Username);
+            command.Parameters.AddWithValue("@serverip", ChatHostInfo.MyIP);
+            command.Parameters.AddWithValue("@uid", user.UID.ToString());
+            command.ExecuteNonQuery();
+            connection.Close();
         }
 
-        public static string GetMyIP()
+        static string RetrieveServerOfUserFromUsersTable(Client user)
         {
-            var externalIpTask = GetExternalIpAddress();
-            GetExternalIpAddress().Wait();
-            var externalIpString = externalIpTask.Result ?? IPAddress.Loopback;
+            SqlConnection connection = new SqlConnection(ChatHostInfo.APPLICATION_DB_DATA_STRING);
+            connection.Open();
+            SqlCommand command = new SqlCommand($"select * from users where uid={user.UID.ToString()}", connection);
+            var reader = command.ExecuteReader();
+            string serverIP = "";
+            while (reader.Read())
+            {
+                serverIP = (string)reader[1];
+            }
+            reader.Close();
+            connection.Close();
 
-            return externalIpString.ToString();
+            return serverIP;
         }
+
+        static bool IsUsernameAlreadyUsedInUsersTable(Client user)
+        {
+            SqlConnection connection = new SqlConnection(ChatHostInfo.APPLICATION_DB_DATA_STRING);
+            connection.Open();
+            SqlCommand command = new SqlCommand($"select * from users where username={user.Username}", connection);
+            var reader = command.ExecuteReader();
+            bool IsDuplicateUsername = false;
+            while (reader.Read())
+            {
+                IsDuplicateUsername = true;
+            }
+            reader.Close();
+            connection.Close();
+
+            return IsDuplicateUsername;
+        }
+
+        // make new method that goes through each user in db and checks if user is in _users and if not enacts protocal to send data to other server
 
     }
 

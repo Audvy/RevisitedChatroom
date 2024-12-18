@@ -12,7 +12,7 @@ namespace ChatServer
 
         PacketReader _packetReader;
 
-        public bool accepted = false;
+        public bool HasValidConnection = false;
 
         public Client(TcpClient client)
         {
@@ -54,10 +54,8 @@ namespace ChatServer
                 catch (System.IO.IOException)
                 {
                     Console.WriteLine($"[{DateTime.Now}]: Connection Lost");
-                    if (accepted)
+                    if (HasValidConnection)
                     {
-                        Console.WriteLine($"[{DateTime.Now}]: [{UID}] aka {Username} disconnected!");
-                        Program.BroadcastDisconnection(UID.ToString());
                         Disconnect();
                     }
                     break;
@@ -67,6 +65,8 @@ namespace ChatServer
 
         public void Disconnect()
         {
+            Console.WriteLine($"[{DateTime.Now}]: [{UID}] aka {Username} disconnected!");
+            Program.BroadcastDisconnection(UID.ToString());
             ClientSocket.Close();
         }
     }
