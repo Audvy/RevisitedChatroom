@@ -12,10 +12,11 @@ namespace ChatServer
 
         PacketReader _packetReader;
 
-        public bool HasValidConnection = false;
+        public bool HasValidConnection;
 
         public Client(TcpClient client)
         {
+            HasValidConnection = false;
             ClientSocket = client;
             UID = Guid.NewGuid();
             _packetReader = new PacketReader(ClientSocket.GetStream());
@@ -41,7 +42,7 @@ namespace ChatServer
                         case 5:
                             var msg = _packetReader.ReadMessage();
                             Console.WriteLine($"[{DateTime.Now}]: Message recieved! {Username} said \"{msg}\"");
-                            Program.BroadcastMessage(DateTime.Now, msg, 5, Username);
+                            Program.BroadcastInterserverMessage(DateTime.Now, msg, 5, Username);
                             break;
                         case 25:
                             Disconnect();

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -31,7 +32,10 @@ namespace ChatClient.Net
             {
                 if (!_client.Connected)
                 {
-                    _client.Connect("13.59.197.244", 7890);
+                    //_client.Connect("3.133.113.67", 7890);
+                    //_client.Connect("18.217.171.195", 7890);
+                    //_client.Connect("127.0.0.1", 7890);
+                    _client.Connect("ChatServerLB-9f7dfd96952273cc.elb.us-east-2.amazonaws.com", 7890);
                     PacketReader = new PacketReader(_client.GetStream());
 
 
