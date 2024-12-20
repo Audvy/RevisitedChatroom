@@ -4,6 +4,11 @@
              xmlns:local="clr-namespace:InitialChatroom"
              StartupUri="MVVM/View/MainWindow.xaml">
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="./Themes/MessageBox.xaml"/>
+                <ResourceDictionary Source="./Themes/StylishScrollbar.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

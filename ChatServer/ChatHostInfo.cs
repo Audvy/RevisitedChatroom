@@ -24,13 +24,21 @@ namespace ChatServer
         // 25 - 34: Notification OpCodes
         public const int INVALID_USERNAME_OPCODE = 25;
 
+        // 50-55: MonitoringService OpCodes
+        public const int MONITORINGSERVICE_CONNECTION_OPCODE = 50;
+        public const int MONITORINGSERVICE_MESSAGE_OPCODE = 55;
+
         // Database Connection strings
         public const string APPLICATION_DB_DATA_STRING = "Data Source=chatdb.cf64cwwg2pao.us-east-2.rds.amazonaws.com,1433;Initial Catalog=application;Persist Security Info=True;User ID=admin;Password=password;Trust Server Certificate=True";
+
+        // Monitoring Service Connection
+        public const string MONITORINGSERVICE_IP = "18.118.255.136";
 
         // Ports
         public const int INTERSERVER_COMMS_PORT = 8765;
         public const int CLIENT_SOCKET_PORT = 7890;
         public const int AWS_HEALTHCHECKS_PORT = 9876;
+        public const int MONITORINGSERVICE_PORT = 6789;
 
 
         public static string MyIP 
