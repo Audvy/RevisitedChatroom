@@ -1,12 +1,11 @@
-﻿using Microsoft.Identity.Client;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChatServer
+namespace XB
 {
     class ChatHostInfo
     {
@@ -32,7 +31,7 @@ namespace ChatServer
         public const string APPLICATION_DB_DATA_STRING = "Data Source=chatdb.cf64cwwg2pao.us-east-2.rds.amazonaws.com,1433;Initial Catalog=application;Persist Security Info=True;User ID=admin;Password=password;Trust Server Certificate=True";
 
         // Monitoring Service Connection
-        public const string MONITORINGSERVICE_IP = "3.141.192.122";
+        public const string MONITORINGSERVICE_IP = "18.118.255.136";
 
         // Ports
         public const int INTERSERVER_COMMS_PORT = 8765;
@@ -62,24 +61,6 @@ namespace ChatServer
             var externalIpString = externalIpTask.Result ?? IPAddress.Loopback;
 
             return externalIpString.ToString();
-        }
-
-        public static byte GetInterserverOpCodeAlternative(int opCode)
-        {
-            switch (opCode)
-            {
-                case USER_CONNECTION_OPCODE:
-                    return INTERSERVER_CONNECTION_OPCODE;
-                    break;
-                case MESSAGE_OPCODE:
-                    return INTERSERVER_MESSAGE_OPCODE;
-                    break;
-                case USER_DISCONNECTION_OPCODE:
-                    return INTERSERVER_USER_DISCONNECTION_OPCODE;
-                    break;
-                default:
-                    return INTERSERVER_MESSAGE_OPCODE;
-            }
         }
     }
 }

@@ -2,7 +2,9 @@
 
 using MonitoringService.Net.IO;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Text;
 
 namespace MonitoringService
 {
@@ -26,7 +28,6 @@ namespace MonitoringService
                 var server = new Host(_hostlistener.AcceptTcpClient());
                 _hosts.Add(server);
             }
-
         }
     }
 }

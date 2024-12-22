@@ -88,6 +88,7 @@ namespace ChatClient.Net
         {
             var messagePacket = new PacketBuilder();
             messagePacket.WriteOpCode(5);
+            // Add a bunch of other write messages to be able to send more information about the messaage like images author files etc
             messagePacket.WriteMessage(message);
             _client.Client.Send(messagePacket.GetPacketBytes());
         }

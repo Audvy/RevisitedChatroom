@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,25 +38,35 @@ namespace MonitoringService
 
         void Process()
         {
+            Console.WriteLine($"Beginning ping checks on {ip}");
+            int consecutiveNonSuccessfulPings = 0;
             while (true)
             {
-                try
-                {
-                    var opCode = _packetReader.ReadByte();
-                    switch (opCode)
-                    {
-                        case 55:
-                            var msg = _packetReader.ReadMessage();
-                            Console.WriteLine($"[{DateTime.Now}]: Message recieved! {ip} said \"{msg}\"");
-                            break;
-                        default:
-                            break;
+                Ping pingSender = new Ping();
+                PingOptions options = new PingOptions();
 
-                    }
-                }
-                catch (System.IO.IOException)
+                // Use the default Ttl value which is 128,
+                // but change the fragmentation behavior.
+                options.DontFragment = true;
+
+                // Create a buffer of 32 bytes of data to be transmitted. 
+                string data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+                byte[] buffer = Encoding.ASCII.GetBytes(data);
+                int timeout = 120;
+                PingReply reply = pingSender.Send(ip, timeout, buffer, options);
+                if (reply.Status != IPStatus.Success)
                 {
-                    Console.WriteLine($"[{DateTime.Now}]: Server {ip} went down");
+                    Console.WriteLine($"----------------No connection to {ip}!");
+                    consecutiveNonSuccessfulPings++;
+                }
+                else
+                {
+                    Console.WriteLine($"Pinged {ip}!");
+                    consecutiveNonSuccessfulPings = 0;
+                }
+                if (consecutiveNonSuccessfulPings > 30)
+                {
+                    Console.WriteLine($"----------------{ip} is offline----------------");
                     Disconnect();
                     break;
                 }
@@ -64,8 +75,7 @@ namespace MonitoringService
 
         public void Disconnect()
         {
-            Console.WriteLine($"[{DateTime.Now}]: Server {ip} went down");
-            
+            RemoveUnresponsiveServerFromServersDB();
             HostSocket.Close();
         }
 
