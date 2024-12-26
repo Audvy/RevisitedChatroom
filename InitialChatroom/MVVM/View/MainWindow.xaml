@@ -99,7 +99,12 @@
                 <RowDefinition/>
                 <RowDefinition Height="70"/>
             </Grid.RowDefinitions>
-            <ListView Background="Transparent" Grid.Row="0" Foreground="White" ItemsSource="{Binding Messages}"/>
+        
+            <ListView Background="Transparent" 
+                      Grid.Row="0" 
+                      BorderThickness="0"
+                      Foreground="White" 
+                      ItemsSource="{Binding Messages}"/>
 
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
@@ -107,7 +112,8 @@
                     <ColumnDefinition Width="70"/>
                 </Grid.ColumnDefinitions>
                 
-                <TextBox Grid.Row="1" Height="50"
+                <TextBox    Grid.Row="1" 
+                            Height="50"
                              Text="Send a message."
                              Style="{StaticResource MessageBox}"
                              Grid.Column="0"

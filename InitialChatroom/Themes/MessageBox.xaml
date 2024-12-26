@@ -30,7 +30,7 @@
                             </TextBox>
 
                             <TextBlock IsHitTestVisible="False"
-                                       Text="@Message"
+                                       Text="Send a message."
                                        VerticalAlignment="Center"
                                        HorizontalAlignment="Left"
                                        Margin="10,0,0,0"

@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitoringService", "Monito
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XA", "XA\XA.csproj", "{6EC422BD-D136-481F-AD3B-CC24D8EF516A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdatedChatUI", "..\UpdatedChatUI\UpdatedChatUI\UpdatedChatUI.csproj", "{B711D2CA-F772-4F3B-994A-549E3444BEA1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{6EC422BD-D136-481F-AD3B-CC24D8EF516A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6EC422BD-D136-481F-AD3B-CC24D8EF516A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6EC422BD-D136-481F-AD3B-CC24D8EF516A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B711D2CA-F772-4F3B-994A-549E3444BEA1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B711D2CA-F772-4F3B-994A-549E3444BEA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B711D2CA-F772-4F3B-994A-549E3444BEA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B711D2CA-F772-4F3B-994A-549E3444BEA1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

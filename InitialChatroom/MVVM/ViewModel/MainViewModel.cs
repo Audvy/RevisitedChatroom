@@ -29,7 +29,7 @@ namespace ChatClient.MVVM.ViewModel
 
 
         private Server _server;
-        public MainViewModel() 
+        public MainViewModel()
         {
             Users = new ObservableCollection<UserModel>();
             Messages = new ObservableCollection<string>();
@@ -41,7 +41,12 @@ namespace ChatClient.MVVM.ViewModel
             _server.invalidUsernameEvent += InvalidUsername;
             _server.usernameAlreadyTakenEvent += UsernameAlreadyTaken;
             ConnectToServerCommand = new RelayCommand(o => _server.ConnectToServer(Username), o => !string.IsNullOrEmpty(Username));
-            SendMessageCommand = new RelayCommand(o => _server.SendMessageToServer(Message), o => !string.IsNullOrEmpty(Message));
+            SendMessageCommand = new RelayCommand(o =>
+                { 
+                    _server.SendMessageToServer(Message);
+                    Message = "";
+                },
+                o => !string.IsNullOrEmpty(Message));
         }
 
         private void UserDisconnected()
