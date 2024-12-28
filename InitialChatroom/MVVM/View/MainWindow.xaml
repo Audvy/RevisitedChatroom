@@ -29,7 +29,10 @@
 
         <Border Grid.ColumnSpan="2"
                 Background="#252525"
-                MouseDown="Border_MouseDown">
+                MouseDown="OnMouseLeftButtonDown"
+                MouseUp="OnMouseLeftButtonUp"
+                MouseMove="OnMouseMove">
+
 
             <Grid HorizontalAlignment="Stretch">
                 <Label Content="Chat"
@@ -44,14 +47,21 @@
                             BorderThickness="0"
                             Foreground="Gray"
                             FontWeight="Bold"
-                            Click="ButtonMinimize_Click"/>
+                            Command="{Binding MinimizeWindowCommand}"/>
                     <Button Width="20" Height="20"
                             Content="▢"
                             Background="Transparent"
                             BorderThickness="0"
                             Foreground="Gray"
                             FontWeight="Bold"
-                            Click="WindowStateButton_Click"/>
+                            Command="{Binding MaximizeWindowCommand}"/>
+                    <Button Width="20" Height="20"
+                            Content="𝕏"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="Gray"
+                            FontWeight="Bold"
+                            Command="{Binding ShutdownWindowCommand}"/>
                 </StackPanel>
 
             </Grid>

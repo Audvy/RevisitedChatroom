@@ -1,4 +1,5 @@
 ﻿using ChatClient.MVVM.ViewModel;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,36 +23,54 @@ namespace InitialChatroom
             InitializeComponent();
         }
 
-        private void Border_MouseDown(object sender, MouseButtonEventArgs e)
+
+        private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed)
+            if (e.ClickCount == 2)
             {
+                if (ResizeMode != ResizeMode.CanResize &&
+                    ResizeMode != ResizeMode.CanResizeWithGrip)
+                {
+                    return;
+                }
+
+                WindowState = WindowState == WindowState.Maximized
+                    ? WindowState.Normal
+                    : WindowState.Maximized;
+            }
+            else
+            {
+                mRestoreForDragMove = WindowState == WindowState.Maximized;
                 DragMove();
             }
         }
 
-        private void ButtonMinimize_Click(object sender, RoutedEventArgs e)
+        private void OnMouseMove(object sender, MouseEventArgs e)
         {
-            Application.Current.MainWindow.WindowState = WindowState.Minimized;
-        }
-
-        private void WindowStateButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (Application.Current.MainWindow.WindowState != WindowState.Maximized)
+            if (mRestoreForDragMove)
             {
-                Application.Current.MainWindow.WindowState = WindowState.Maximized;
-            }
-            else
-            {
-                Application.Current.MainWindow.WindowState = WindowState.Normal;
-            }
+                mRestoreForDragMove = false;
 
+                var point = PointToScreen(e.MouseDevice.GetPosition(this));
+
+                Left = point.X - (RestoreBounds.Width * 0.5);
+                Top = point.Y;
+
+                WindowState = WindowState.Normal;
+
+                DragMove();
+            }
         }
 
-        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            Application.Current.Shutdown();
-
+            mRestoreForDragMove = false;
         }
+
+        private bool mRestoreForDragMove;
+
+
+
+
     }
 }

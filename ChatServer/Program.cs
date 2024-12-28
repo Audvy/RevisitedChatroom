@@ -18,7 +18,7 @@ namespace ChatServer
     {
         static List<Client> _users;
         static List<ServerSender> _servers;
-        static MonitoringService _monitoringService;
+        //static MonitoringService _monitoringService;
 
         static TcpListener _clientportlistener;
         static TcpListener _serverportlistener;
@@ -30,8 +30,8 @@ namespace ChatServer
         static void Main(string[] args)
         {
 
-            _monitoringService = new MonitoringService(ChatHostInfo.MONITORINGSERVICE_IP);
-            _monitoringService.ConnectToServer();
+            //_monitoringService = new MonitoringService(ChatHostInfo.MONITORINGSERVICE_IP);
+            //_monitoringService.ConnectToServer();
             Console.WriteLine($"{ChatHostInfo.MyIP} up and running");
             // _users is a subset of the total users where ∀u, u ∈ _users is connected to this server instance
             _users = new List<Client>();

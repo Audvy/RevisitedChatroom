@@ -29,7 +29,7 @@ namespace ChatServer
         public const int MONITORINGSERVICE_MESSAGE_OPCODE = 55;
 
         // Database Connection strings
-        public const string APPLICATION_DB_DATA_STRING = "Data Source=chatdb.cf64cwwg2pao.us-east-2.rds.amazonaws.com,1433;Initial Catalog=application;Persist Security Info=True;User ID=admin;Password=password;Trust Server Certificate=True";
+        public const string APPLICATION_DB_DATA_STRING = "Data Source=(localdb)\\ChatAppDB;Initial Catalog=master;Integrated Security=True";
 
         // Monitoring Service Connection
         public const string MONITORINGSERVICE_IP = "3.141.192.122";

@@ -11,7 +11,7 @@ namespace ChatClient.Net
 {
     class Server
     {
-        TcpClient _client;
+        public TcpClient _client;
         public PacketReader PacketReader;
 
         public event Action connectedEvent;
@@ -32,11 +32,8 @@ namespace ChatClient.Net
             {
                 if (!_client.Connected)
                 {
-                    //_client.Connect("3.133.113.67", 7890);
-                    //_client.Connect("18.217.171.195", 7890);
-                    //_client.Connect("127.0.0.1", 7890);
-                    _client.Connect("ChatServerLB-9f7dfd96952273cc.elb.us-east-2.amazonaws.com", 7890);
-                    //_client.Connect("18.218.59.112", 7890);
+                    _client.Connect("127.0.0.1", 7890);
+                    //_client.Connect("ChatServerLB-9f7dfd96952273cc.elb.us-east-2.amazonaws.com", 7890);
 
                     PacketReader = new PacketReader(_client.GetStream());
 
